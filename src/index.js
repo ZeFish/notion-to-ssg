@@ -348,13 +348,13 @@ async function fetchDatabaseMeta(notion, database_id) {
   return notion.databases.retrieve({ database_id });
 }
 
-async function fetchAllPages(notion, data_source_id) {
+async function fetchAllPages(notion, database_id) {
   const results = [];
   let hasMore = true;
   let start_cursor = undefined;
   while (hasMore) {
-    const resp = await notion.dataSources.query({
-      data_source_id: data_source_id,
+    const resp = await notion.databases.query({
+      database_id: database_id,
       start_cursor: start_cursor,
     });
     results.push(...resp.results);
@@ -522,13 +522,7 @@ async function exportNotionToSSG(options = {}) {
     const existingFiles = getAllMarkdownFilesInDir(dbCfg.dir);
     const writtenFiles = new Set();
 
-    // Extract data_source_id from dbMeta
-    if (!dbMeta.data_sources || dbMeta.data_sources.length === 0) {
-      throw new Error(`No data sources found for database ID: ${dbId}`);
-    }
-    const data_source_id = dbMeta.data_sources[0].id;
-
-    const pages = await fetchAllPages(notion, data_source_id);
+    const pages = await fetchAllPages(notion, dbId);
     console.log(
       `Exporting ${pages.length} pages from ${dbMeta?.title?.[0]?.plain_text || dbId} → ${dbCfg.dir}`,
     );
