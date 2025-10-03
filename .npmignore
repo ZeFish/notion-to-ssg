@@ -1,0 +1,61 @@
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Documentation sources
+docs/
+PUBLISHING.md
+RELEASING.md
+PROJECT_STRUCTURE.md
+
+# Development files
+.github/
+.vscode/
+.idea/
+
+# Environment and config
+.env
+.env.*
+notion.config.yml
+notion.config.json
+.release-it.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+
+# Build artifacts
+dist/
+build/
+
+# Example output directories
+src/posts/
+src/blog/
+src/pages/
+src/projects/
+src/assets/
+src/images/
+
+# Original script (keep only the refactored src/ version)
+export-notion-11ty.js
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

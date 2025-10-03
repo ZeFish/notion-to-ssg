@@ -1,0 +1,75 @@
+# Example GitHub Actions workflow for automated Notion exports
+# Copy this file to .github/workflows/export-notion.yml and customize as needed
+
+name: Export Notion Content
+
+on:
+  # Run every 6 hours
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+  # Run on push to main (optional)
+  # push:
+  #   branches:
+  #     - main
+
+jobs:
+  export-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export Notion content
+        run: npm run notion:export
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: update Notion content [skip ci]"
+          git push
+
+      # Optional: Build and deploy your site
+      # - name: Build site
+      #   run: npm run build
+
+      # - name: Deploy to Netlify
+      #   uses: netlify/actions/cli@master
+      #   with:
+      #     args: deploy --prod --dir=_site
+      #   env:
+      #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+# Setup Instructions:
+# 1. Go to your repository Settings > Secrets and variables > Actions
+# 2. Add a new secret named NOTION_TOKEN with your Notion API token
+# 3. Make sure your package.json has a "notion:export" script:
+#    "scripts": {
+#      "notion:export": "notion-to-ssg"
+#    }
+# 4. Customize the schedule, branches, and deployment steps as needed
+# 5. Copy this file to .github/workflows/export-notion.yml

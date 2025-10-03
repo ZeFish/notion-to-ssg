@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+
+# Actual config files (keep examples only)
+notion.config.yml
+notion.config.json
+
+# Setup documentation (not needed after setup)
+SETUP_COMPLETE.md
+PRE_PUBLISH_CHECKLIST.md
+
+# Notion exports (if testing locally)
+src/posts/
+src/blog/
+src/pages/
+src/projects/
+src/assets/
+src/images/

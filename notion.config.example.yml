@@ -1,0 +1,55 @@
+# Notion to SSG Configuration (YAML format)
+# Copy this file to notion.config.yml and customize for your project
+
+databases:
+  # Example: Blog posts database
+  - databaseId: "your-notion-database-id-here"
+    srcDir: "src/posts"
+    srcDirImages: "src/assets/images/posts"
+    basePath: "/blog"
+    layout: "layouts/post.njk"
+    excludeProperties:
+      - "Internal Notes"
+      - "Draft"
+    slug:
+      from: "title"        # Options: "title", "id", or any property name
+      fallback: "id"       # Fallback if primary slug source is empty
+      lower: true          # Convert to lowercase
+    permalink: "/blog/{slug}/"
+    frontMatter:
+      tags: "post"
+      templateEngineOverride: "njk,md"
+
+  # Example: Portfolio/Projects database
+  - databaseId: "another-database-id"
+    srcDir: "src/projects"
+    srcDirImages: "src/assets/images/projects"
+    basePath: "/projects"
+    layout: "layouts/project.njk"
+    permalink: "/projects/{slug}/"
+
+  # Example: Pages database
+  - databaseId: "pages-database-id"
+    srcDir: "src/pages"
+    srcDirImages: "src/assets/images/pages"
+    basePath: "/pages"
+    layout: "layouts/page.njk"
+    excludeProperties:
+      - "Status"
+    frontMatter:
+      eleventyExcludeFromCollections: false
+
+# Configuration options:
+#
+# databaseId (required): Your Notion database ID (found in the database URL)
+# srcDir (required): Output directory for markdown files
+# srcDirImages (optional): Directory for downloaded images (default: "src/images/notion")
+# basePath (required): URL base path for the content
+# layout (required): Template layout file to use
+# excludeProperties (optional): Array of property names to exclude from front matter
+# slug (optional): Slug generation configuration
+#   - from: Property to use for slug ("title", "id", or property name)
+#   - fallback: What to use if primary source is empty
+#   - lower: Convert slug to lowercase (default: true)
+# permalink (optional): URL pattern for pages (default: "{basePath}/{slug}/")
+# frontMatter (optional): Additional static front matter fields to add to all pages
