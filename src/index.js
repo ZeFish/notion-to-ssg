@@ -73,6 +73,7 @@ async function downloadImage(url, destPath) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith("https") ? https : http;
     const file = fs.createWriteStream(destPath);
+    const hash = crypto.createHash("md5");
 
     protocol
       .get(url, (response) => {
@@ -85,11 +86,17 @@ async function downloadImage(url, destPath) {
           return;
         }
 
+        // Hash the content as it's being downloaded
+        response.on("data", (chunk) => {
+          hash.update(chunk);
+        });
+
         response.pipe(file);
 
         file.on("finish", () => {
           file.close();
-          resolve(destPath);
+          const contentHash = hash.digest("hex").substring(0, 8);
+          resolve({ destPath, contentHash });
         });
       })
       .on("error", (err) => {
@@ -120,25 +127,35 @@ async function saveNotionImage(imageUrl, pageSlug, imageIndex, imagesDir) {
     ensureDir(imagesDir);
 
     const ext = getImageExtension(imageUrl);
-    const urlHash = crypto
-      .createHash("md5")
-      .update(imageUrl)
-      .digest("hex")
-      .substring(0, 8);
-    const filename = `${pageSlug}-${imageIndex}-${urlHash}.${ext}`;
-    const destPath = path.join(imagesDir, filename);
 
-    // Skip if already exists
-    if (fs.existsSync(destPath)) {
-      const relativePath = `/${path.relative(path.join(process.cwd(), "src"), destPath)}`;
+    // Download to a temporary path first to get content hash
+    const tempFilename = `temp-${Date.now()}-${imageIndex}.${ext}`;
+    const tempPath = path.join(imagesDir, tempFilename);
+
+    const { destPath: downloadedPath, contentHash } = await downloadImage(
+      imageUrl,
+      tempPath,
+    );
+
+    // Use content hash instead of URL hash to avoid duplicates
+    const filename = `${pageSlug}-${imageIndex}-${contentHash}.${ext}`;
+    const finalPath = path.join(imagesDir, filename);
+
+    // Check if an image with this content hash already exists
+    if (fs.existsSync(finalPath)) {
+      // Delete the temp file since we already have this image
+      fs.unlinkSync(downloadedPath);
+      console.log(`  📷 Image already exists (reusing): ${filename}`);
+      const relativePath = `/${path.relative(path.join(process.cwd(), "src"), finalPath)}`;
       imageCache.set(imageUrl, relativePath);
       return relativePath;
     }
 
-    await downloadImage(imageUrl, destPath);
+    // Rename temp file to final filename
+    fs.renameSync(downloadedPath, finalPath);
     console.log(`  📷 Downloaded image: ${filename}`);
 
-    const relativePath = `/${path.relative(path.join(process.cwd(), "src"), destPath)}`;
+    const relativePath = `/${path.relative(path.join(process.cwd(), "src"), finalPath)}`;
     imageCache.set(imageUrl, relativePath);
     return relativePath;
   } catch (error) {
