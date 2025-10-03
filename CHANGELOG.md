@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.0.2](https://github.com/ZeFish/notion-to-ssg/compare/v1.0.1...v1.0.2) (2025-10-03)
+
 ## 1.0.1 (2025-10-03)
 
 All notable changes to this project will be documented in this file.
