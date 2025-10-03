@@ -11,10 +11,10 @@ A flexible and powerful tool to export your Notion databases as Markdown files w
 
 - 🚀 **Zero hardcoded properties** - Works with any Notion database schema
 - 📝 **Automatic Markdown conversion** - Converts Notion blocks to clean Markdown
-- 🖼️ **Image downloading** - Downloads and saves images locally with smart caching
+- 🖼️ **Image downloading** - Downloads and saves images locally with content-based hashing to prevent duplicates
 - 🔧 **Flexible configuration** - YAML or JSON config files
 - 🎯 **Multiple databases** - Export multiple databases in one run
-- 🧹 **Stale file cleanup** - Automatically removes deleted pages
+- 🧹 **Smart cleanup** - Automatically removes old content and images before syncing (configurable)
 - 🏷️ **Smart slugification** - Customizable URL-friendly slug generation
 - 📦 **Front matter support** - All Notion properties exported as YAML front matter
 - 🌐 **Cover & icon support** - Downloads page covers and icons
@@ -158,6 +158,10 @@ Add to your `package.json`:
 #### Optional fields
 
 - **`srcDirImages`** - Directory for downloaded images (default: `src/images/notion`)
+- **`cleanBeforeSync`** - Clean old content before syncing (default: `true`)
+  - When `true`: Removes all `.md` files in `srcDir` and all images in `srcDirImages` before fetching
+  - When `false`: Keeps existing files (may result in orphaned content)
+  - Recommended: Keep as `true` to ensure deleted Notion pages are removed
 - **`excludeProperties`** - Array of property names to exclude from front matter
 - **`slug`** - Slug generation configuration
   - `from` - Property to use: `"title"`, `"id"`, or any property name (default: `"title"`)
@@ -175,6 +179,7 @@ databases:
     srcDirImages: "src/assets/images/blog"
     basePath: "/blog"
     layout: "layouts/post.njk"
+    cleanBeforeSync: true  # default: true (removes old content before sync)
     
     excludeProperties:
       - "Internal Notes"
@@ -270,11 +275,35 @@ All Notion property types are automatically converted:
 ## 🖼️ Image Handling
 
 - **Automatic download** - All Notion-hosted images are downloaded locally
-- **Smart caching** - Images are cached to avoid re-downloading
-- **Unique filenames** - Uses content hash to prevent collisions
+- **Smart caching** - Images are cached in-memory to avoid re-downloading during the same run
+- **Content-based hashing** - Images are hashed by content (not URL) to prevent duplicates
+  - Same image with different Notion URLs = single file on disk
+  - Saves storage and prevents duplicate images
+- **Unique filenames** - Format: `{slug}-{index}-{contenthash}.{ext}`
 - **Relative paths** - Generated paths work with 11ty and other SSGs
 - **Cover images** - Page cover images saved as `coverImage` in front matter
 - **Icons** - Page icons saved as `iconImage` in front matter
+
+## 🧹 Content Cleanup
+
+By default, `cleanBeforeSync: true` ensures your output directory stays in sync with Notion:
+
+- **Before sync**: Removes all `.md` files from `srcDir` and all images from `srcDirImages`
+- **After sync**: Only current Notion content exists on disk
+- **Benefits**:
+  - Deleted Notion pages are automatically removed
+  - Renamed pages don't leave orphaned files
+  - Old images are cleaned up
+  - Output directory matches Notion exactly
+
+To disable cleanup (and handle it manually):
+
+```yaml
+databases:
+  - databaseId: "your-db-id"
+    cleanBeforeSync: false  # Keep existing files
+    # ... other config
+```
 
 ## 🔧 Use Cases
 

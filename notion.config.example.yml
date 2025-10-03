@@ -8,13 +8,14 @@ databases:
     srcDirImages: "src/assets/images/posts"
     basePath: "/blog"
     layout: "layouts/post.njk"
+    cleanBeforeSync: true # default: true (removes old content before sync)
     excludeProperties:
       - "Internal Notes"
       - "Draft"
     slug:
-      from: "title"        # Options: "title", "id", or any property name
-      fallback: "id"       # Fallback if primary slug source is empty
-      lower: true          # Convert to lowercase
+      from: "title" # Options: "title", "id", or any property name
+      fallback: "id" # Fallback if primary slug source is empty
+      lower: true # Convert to lowercase
     permalink: "/blog/{slug}/"
     frontMatter:
       tags: "post"
@@ -38,7 +39,6 @@ databases:
       - "Status"
     frontMatter:
       eleventyExcludeFromCollections: false
-
 # Configuration options:
 #
 # databaseId (required): Your Notion database ID (found in the database URL)
@@ -46,6 +46,9 @@ databases:
 # srcDirImages (optional): Directory for downloaded images (default: "src/images/notion")
 # basePath (required): URL base path for the content
 # layout (required): Template layout file to use
+# cleanBeforeSync (optional): Remove old content before syncing (default: true)
+#   - true: Cleans all .md files in srcDir and all images in srcDirImages before sync
+#   - false: Keeps existing files (may result in orphaned content from deleted Notion pages)
 # excludeProperties (optional): Array of property names to exclude from front matter
 # slug (optional): Slug generation configuration
 #   - from: Property to use for slug ("title", "id", or property name)

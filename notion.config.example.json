@@ -6,6 +6,7 @@
       "srcDirImages": "src/assets/images/posts",
       "basePath": "/blog",
       "layout": "layouts/post.njk",
+      "cleanBeforeSync": true,
       "excludeProperties": ["Internal Notes", "Draft"],
       "slug": {
         "from": "title",

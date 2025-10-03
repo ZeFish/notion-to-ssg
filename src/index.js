@@ -57,6 +57,30 @@ function getAllMarkdownFilesInDir(dir) {
     .map((file) => path.join(dir, file));
 }
 
+function cleanDirectory(dir, pattern = null) {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
+  const deletedFiles = [];
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+
+    if (stat.isFile()) {
+      // If pattern provided, only delete matching files
+      if (!pattern || file.match(pattern)) {
+        fs.unlinkSync(filePath);
+        deletedFiles.push(filePath);
+      }
+    }
+  }
+
+  return deletedFiles;
+}
+
 // ---------- String Helpers ----------
 function toSlug(str, opts = { lower: true }) {
   return slugify(String(str || ""), {
@@ -322,6 +346,7 @@ function detectDbConfig(dbConf, dbMeta) {
   };
   const permalinkTpl = dbConf.permalink || `${basePath}/{slug}/`;
   const fmExtras = dbConf.frontMatter || {};
+  const cleanBeforeSync = dbConf.cleanBeforeSync !== false; // default true
 
   return {
     dir,
@@ -332,6 +357,7 @@ function detectDbConfig(dbConf, dbMeta) {
     slugConf,
     permalinkTpl,
     fmExtras,
+    cleanBeforeSync,
   };
 }
 
@@ -535,8 +561,27 @@ async function exportNotionToSSG(options = {}) {
     const dbCfg = detectDbConfig(dbConf, dbMeta);
 
     ensureDir(dbCfg.dir);
+    ensureDir(dbCfg.imagesDir);
 
-    const existingFiles = getAllMarkdownFilesInDir(dbCfg.dir);
+    let deletedFiles = [];
+
+    // Clean before sync if enabled
+    if (dbCfg.cleanBeforeSync) {
+      console.log(`🧹 Cleaning old content before sync...`);
+
+      // Clean markdown files
+      const deletedMd = cleanDirectory(dbCfg.dir, /\.md$/);
+      deletedFiles.push(...deletedMd);
+
+      // Clean image files (keep directory structure)
+      const deletedImages = cleanDirectory(dbCfg.imagesDir);
+      deletedFiles.push(...deletedImages);
+
+      if (deletedFiles.length > 0) {
+        console.log(`   Removed ${deletedFiles.length} old file(s)`);
+      }
+    }
+
     const writtenFiles = new Set();
 
     const pages = await fetchAllPages(notion, dbId);
@@ -548,16 +593,6 @@ async function exportNotionToSSG(options = {}) {
       const outPath = await writePage(n2m, dbCfg, page);
       writtenFiles.add(outPath);
       console.log("✓", outPath);
-    }
-
-    // Clean up stale files
-    const deletedFiles = [];
-    for (const file of existingFiles) {
-      if (!writtenFiles.has(file)) {
-        fs.unlinkSync(file);
-        deletedFiles.push(file);
-        console.log("✗ Deleted stale file:", file);
-      }
     }
 
     results.push({
