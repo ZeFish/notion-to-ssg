@@ -383,7 +383,9 @@ function renderPermalink(tpl, ctx) {
 }
 
 function toFrontMatterYaml(obj) {
-  return `---\n${yaml.dump(obj)}---\n`;
+  return `---
+${yaml.dump(obj)}---
+`;
 }
 
 // ---------- Notion API Interactions ----------
@@ -407,44 +409,65 @@ async function fetchAllPages(notion, database_id) {
   return results;
 }
 
-async function pageBodyMarkdown(n2m, pageId, slug, imagesDir) {
+async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
   try {
     const mdBlocks = await n2m.pageToMarkdown(pageId);
     const md = n2m.toMarkdownString(mdBlocks);
     let markdown = md.parent || "";
 
-    // Find all image URLs in the markdown and download them
-    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    // Regex to find all links, including Notion internal links
+    const linkRegex = /!?\[([^\]]*)\]\(([^)]+)\)/g;
     let match;
-    let imageIndex = 0;
     const replacements = [];
 
-    while ((match = imageRegex.exec(markdown)) !== null) {
-      const [fullMatch, altText, imageUrl] = match;
+    while ((match = linkRegex.exec(markdown)) !== null) {
+      const [fullMatch, altText, url] = match;
 
-      // Only process Notion URLs
-      if (
-        imageUrl.includes("notion") ||
-        imageUrl.includes("secure.notion-static.com") ||
-        imageUrl.includes("s3.us-west")
-      ) {
-        const localPath = await saveNotionImage(
-          imageUrl,
-          slug,
-          imageIndex,
-          imagesDir,
-        );
+      // Handle images: download and replace URL
+      if (fullMatch.startsWith("!")) {
+        if (
+          url.includes("notion") ||
+          url.includes("secure.notion-static.com") ||
+          url.includes("s3.us-west")
+        ) {
+          const localPath = await saveNotionImage(
+            url,
+            slug,
+            replacements.length, // Use index for uniqueness
+            imagesDir,
+          );
+          replacements.push({
+            original: fullMatch,
+            replacement: `![${altText}](${localPath})`,
+          });
+        }
+        continue; // Move to the next match
+      }
+
+      // Handle internal Notion links: resolve to local permalink
+      const notionUrlMatch = url.match(
+        /https?:\/\/(?:www\.)?notion\.so\/(?:[a-zA-Z0-9-]+\/)?([a-f0-9]{32})/,
+      );
+      const notionId = notionUrlMatch ? notionUrlMatch[1] : null;
+
+      if (notionId && pageMap.has(notionId)) {
+        const localPermalink = pageMap.get(notionId);
         replacements.push({
           original: fullMatch,
-          replacement: `![${altText}](${localPath})`,
+          replacement: `[${altText}](${localPermalink})`,
         });
-        imageIndex++;
+        console.log(
+          `  → Resolved internal link: ${altText} → ${localPermalink}`,
+        );
       }
     }
 
-    // Apply all replacements
-    for (const { original, replacement } of replacements) {
-      markdown = markdown.replace(original, replacement);
+    // Apply all replacements in reverse order to avoid index issues
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      markdown = markdown.replace(
+        replacements[i].original,
+        replacements[i].replacement,
+      );
     }
 
     return markdown;
@@ -455,7 +478,7 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir) {
 }
 
 // ---------- Page Writing ----------
-async function writePage(n2m, dbCfg, page) {
+async function writePage(n2m, dbCfg, page, pageMap) {
   const slug = buildSlug(page, dbCfg.slugConf);
   const permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
 
@@ -516,7 +539,13 @@ async function writePage(n2m, dbCfg, page) {
   }
 
   const fm = toFrontMatterYaml(front);
-  const body = await pageBodyMarkdown(n2m, page.id, slug, dbCfg.imagesDir);
+  const body = await pageBodyMarkdown(
+    n2m,
+    page.id,
+    slug,
+    dbCfg.imagesDir,
+    pageMap,
+  );
 
   ensureDir(dbCfg.dir);
   const outPath = path.join(dbCfg.dir, `${slug}.md`);
@@ -550,15 +579,31 @@ async function exportNotionToSSG(options = {}) {
   const n2m = new NotionToMarkdown({ notionClient: notion });
 
   const results = [];
+  const pageMap = new Map();
+  const allDbPages = new Map();
 
+  // First pass: collect all pages from all databases and build the ID-to-permalink map
   for (const dbConf of config.databases) {
     if (!dbConf.databaseId) {
       throw new Error("Each database config must have a 'databaseId' field");
     }
-
     const dbId = dbConf.databaseId;
     const dbMeta = await fetchDatabaseMeta(notion, dbId);
     const dbCfg = detectDbConfig(dbConf, dbMeta);
+    const pages = await fetchAllPages(notion, dbId);
+    allDbPages.set(dbId, { pages, dbMeta, dbCfg });
+
+    for (const page of pages) {
+      const slug = buildSlug(page, dbCfg.slugConf);
+      const permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
+      pageMap.set(page.id.replace(/-/g, ""), permalink);
+    }
+  }
+
+  // Second pass: write all pages using the complete map
+  for (const dbConf of config.databases) {
+    const dbId = dbConf.databaseId;
+    const { pages, dbMeta, dbCfg } = allDbPages.get(dbId);
 
     ensureDir(dbCfg.dir);
     ensureDir(dbCfg.imagesDir);
@@ -567,32 +612,30 @@ async function exportNotionToSSG(options = {}) {
 
     // Clean before sync if enabled
     if (dbCfg.cleanBeforeSync) {
-      console.log(`🧹 Cleaning old content before sync...`);
-
-      // Clean markdown files
+      console.log(`🧹 Cleaning old content in ${dbCfg.dir}...`);
       const deletedMd = cleanDirectory(dbCfg.dir, /\.md$/);
       deletedFiles.push(...deletedMd);
+      console.log(`   Removed ${deletedMd.length} old markdown file(s)`);
 
-      // Clean image files (keep directory structure)
-      const deletedImages = cleanDirectory(dbCfg.imagesDir);
-      deletedFiles.push(...deletedImages);
-
-      if (deletedFiles.length > 0) {
-        console.log(`   Removed ${deletedFiles.length} old file(s)`);
+      // Only clean images if the directory is specific to this database
+      if (dbConf.srcDirImages) {
+        console.log(`🧹 Cleaning old images in ${dbCfg.imagesDir}...`);
+        const deletedImages = cleanDirectory(dbCfg.imagesDir);
+        deletedFiles.push(...deletedImages);
+        console.log(`   Removed ${deletedImages.length} old image file(s)`);
       }
     }
 
     const writtenFiles = new Set();
 
-    const pages = await fetchAllPages(notion, dbId);
     console.log(
-      `Exporting ${pages.length} pages from ${dbMeta?.title?.[0]?.plain_text || dbId} → ${dbCfg.dir}`,
+      `Exporting ${pages.length} pages from "${dbMeta?.title?.[0]?.plain_text || dbId}" → ${dbCfg.dir}`,
     );
 
     for (const page of pages) {
-      const outPath = await writePage(n2m, dbCfg, page);
+      const outPath = await writePage(n2m, dbCfg, page, pageMap);
       writtenFiles.add(outPath);
-      console.log("✓", outPath);
+      console.log("✓", path.relative(process.cwd(), outPath));
     }
 
     results.push({
