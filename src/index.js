@@ -82,6 +82,17 @@ function cleanDirectory(dir, pattern = null) {
 }
 
 // ---------- String Helpers ----------
+function extractDatabaseId(idOrUrl) {
+  if (idOrUrl.match(/^[a-f0-9]{32}$/)) {
+    return idOrUrl; // It's already a valid ID
+  }
+  const match = idOrUrl.match(/[a-f0-9]{32}/);
+  if (match) {
+    return match[0];
+  }
+  throw new Error(`Invalid Notion database ID or URL: ${idOrUrl}`);
+}
+
 function toSlug(str, opts = { lower: true }) {
   return slugify(String(str || ""), {
     lower: !!opts.lower,
@@ -587,7 +598,8 @@ async function exportNotionToSSG(options = {}) {
     if (!dbConf.databaseId) {
       throw new Error("Each database config must have a 'databaseId' field");
     }
-    const dbId = dbConf.databaseId;
+
+    const dbId = extractDatabaseId(dbConf.databaseId);
     const dbMeta = await fetchDatabaseMeta(notion, dbId);
     const dbCfg = detectDbConfig(dbConf, dbMeta);
     const pages = await fetchAllPages(notion, dbId);
