@@ -510,6 +510,15 @@ async function writePage(n2m, dbCfg, page, pageMap) {
     }
   }
 
+  // If a permalink property was extracted from Notion, it will be in front.permalink.
+  // We don't need to do anything extra, as it has already overwritten the generated one.
+  // However, we should log it if it's different.
+  if (front.permalink !== permalink) {
+    console.log(
+      `  → Overriding permalink with value from 'permalink' property: ${front.permalink}`,
+    );
+  }
+
   // Handle cover image if present
   if (page.cover) {
     const coverUrl =
@@ -607,7 +616,15 @@ async function exportNotionToSSG(options = {}) {
 
     for (const page of pages) {
       const slug = buildSlug(page, dbCfg.slugConf);
-      const permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
+      let permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
+
+      const permalinkProp = page.properties?.permalink;
+      if (permalinkProp) {
+        const permalinkValue = extractPropValue(permalinkProp);
+        if (permalinkValue) {
+          permalink = permalinkValue;
+        }
+      }
       pageMap.set(page.id.replace(/-/g, ""), permalink);
     }
   }
