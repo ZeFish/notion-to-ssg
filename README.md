@@ -19,6 +19,7 @@ A flexible and powerful tool to export your Notion databases as Markdown files w
 - 📦 **Front matter support** - All Notion properties exported as YAML front matter
 - 🌐 **Cover & icon support** - Downloads page covers and icons
 - 🔄 **Property normalization** - Handles all Notion property types (relations, rollups, formulas, etc.)
+- 👑 **Permalink override** - Use a `permalink` property in your Notion page to set the URL directly.
 
 ## 📦 Installation
 
@@ -167,7 +168,7 @@ Add to your `package.json`:
   - `from` - Property to use: `"title"`, `"id"`, or any property name (default: `"title"`)
   - `fallback` - Fallback if primary source is empty (default: `"id"`)
   - `lower` - Convert to lowercase (default: `true`)
-- **`permalink`** - URL pattern (default: `"{basePath}/{slug}/"`)
+- **`permalink`** - URL pattern (default: `"{basePath}/{slug}/"`). **Note:** If a page has a property named `permalink`, its value will be used as the final URL, overriding this setting.
 - **`frontMatter`** - Additional static fields to add to all pages
 
 ### Example: Full Configuration
@@ -216,6 +217,7 @@ Given a Notion page with these properties:
 - **Tags**: `["javascript", "tutorial"]`
 - **Author**: "John Doe"
 - **Published**: `true`
+- **permalink**: `/blog/a-custom-url-from-notion/`
 
 The exported Markdown file (`my-first-blog-post.md`) will look like:
 
@@ -223,13 +225,13 @@ The exported Markdown file (`my-first-blog-post.md`) will look like:
 ---
 layout: layouts/post.njk
 title: My First Blog Post
-permalink: /blog/my-first-blog-post/
+permalink: /blog/a-custom-url-from-notion/
 notionPageId: abc123def456
 Date: '2025-01-15'
 Tags:
   - javascript
   - tutorial
-Author: John Doe
+Author: "John Doe"
 Published: true
 tags: post
 templateEngineOverride: njk,md
