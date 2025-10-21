@@ -456,12 +456,21 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
       }
 
       // Handle internal Notion links: resolve to local permalink
+      // Check both full URLs and direct page IDs (with or without dashes)
+      let notionId = null;
+
+      // Try matching full Notion URL format first
       const notionUrlMatch = url.match(
         /https?:\/\/(?:www\.)?notion\.so\/(?:[a-zA-Z0-9-]+\/)?([a-f0-9]{32})/,
       );
-      const notionId = notionUrlMatch
-        ? notionUrlMatch[1].replace(/-/g, "")
-        : null;
+      if (notionUrlMatch) {
+        notionId = notionUrlMatch[1].replace(/-/g, "");
+      }
+
+      // Try matching direct page ID format (32 hex chars, with or without dashes)
+      if (!notionId && url.match(/^\/[a-f0-9]{32}$|^\/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i)) {
+        notionId = url.replace(/[\/\-]/g, "").toLowerCase();
+      }
 
       if (notionId && pageMap.has(notionId)) {
         const localPermalink = pageMap.get(notionId);
