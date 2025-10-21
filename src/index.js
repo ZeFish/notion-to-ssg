@@ -459,7 +459,9 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
       const notionUrlMatch = url.match(
         /https?:\/\/(?:www\.)?notion\.so\/(?:[a-zA-Z0-9-]+\/)?([a-f0-9]{32})/,
       );
-      const notionId = notionUrlMatch ? notionUrlMatch[1] : null;
+      const notionId = notionUrlMatch
+        ? notionUrlMatch[1].replace(/-/g, "")
+        : null;
 
       if (notionId && pageMap.has(notionId)) {
         const localPermalink = pageMap.get(notionId);
