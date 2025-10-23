@@ -1,6 +1,6 @@
 {
   "name": "notion-to-ssg",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Export Notion databases to Markdown files for static site generators like 11ty, with automatic image downloading and flexible configuration",
   "main": "src/index.js",
   "bin": {
