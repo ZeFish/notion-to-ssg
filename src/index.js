@@ -468,7 +468,12 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
       }
 
       // Try matching direct page ID format (32 hex chars, with or without dashes)
-      if (!notionId && url.match(/^\/[a-f0-9]{32}$|^\/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i)) {
+      if (
+        !notionId &&
+        url.match(
+          /^\/[a-f0-9]{32}$|^\/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i,
+        )
+      ) {
         notionId = url.replace(/[\/\-]/g, "").toLowerCase();
       }
 
@@ -640,15 +645,30 @@ async function exportNotionToSSG(options = {}) {
     }
   }
 
+  // Clean all unique, specified image directories before any exports run
+  const imageDirsToClean = new Set();
+  for (const dbConf of config.databases) {
+    if (dbConf.srcDirImages) {
+      const imagesDir = path.join(process.cwd(), dbConf.srcDirImages);
+      imageDirsToClean.add(imagesDir);
+    }
+  }
+
+  for (const dir of imageDirsToClean) {
+    console.log(`🧹 Cleaning old images in ${dir}...`);
+    const deletedImages = cleanDirectory(dir);
+    console.log(`   Removed ${deletedImages.length} old image file(s)`);
+  }
+
   // Second pass: write all pages using the complete map
   for (const dbConf of config.databases) {
-    const dbId = dbConf.databaseId;
+    const dbId = extractDatabaseId(dbConf.databaseId);
     const { pages, dbMeta, dbCfg } = allDbPages.get(dbId);
 
     ensureDir(dbCfg.dir);
     ensureDir(dbCfg.imagesDir);
 
-    let deletedFiles = [];
+    const deletedFiles = [];
 
     // Clean before sync if enabled
     if (dbCfg.cleanBeforeSync) {
@@ -656,14 +676,6 @@ async function exportNotionToSSG(options = {}) {
       const deletedMd = cleanDirectory(dbCfg.dir, /\.md$/);
       deletedFiles.push(...deletedMd);
       console.log(`   Removed ${deletedMd.length} old markdown file(s)`);
-
-      // Only clean images if the directory is specific to this database
-      if (dbConf.srcDirImages) {
-        console.log(`🧹 Cleaning old images in ${dbCfg.imagesDir}...`);
-        const deletedImages = cleanDirectory(dbCfg.imagesDir);
-        deletedFiles.push(...deletedImages);
-        console.log(`   Removed ${deletedImages.length} old image file(s)`);
-      }
     }
 
     const writtenFiles = new Set();
