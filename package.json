@@ -3,6 +3,11 @@
   "version": "2.0.4",
   "description": "Export Notion databases to Markdown files for static site generators like 11ty, with automatic image downloading and flexible configuration",
   "main": "src/index.js",
+  "exports": {
+    ".": "src/index.js",
+    "./eleventy-plugin-notion-db": "src/eleventy-plugin-notion-db.js",
+    "./eleventy-plugin-notion-comments": "src/eleventy-plugin-notion-comments.js"
+  },
   "bin": {
     "notion-to-ssg": "src/cli.js"
   },
@@ -28,7 +33,12 @@
     "ssg",
     "cms",
     "notion-api",
-    "jamstack"
+    "jamstack",
+    "form",
+    "comments",
+    "contact-form",
+    "database",
+    "plugin"
   ],
   "author": "ZeFish",
   "license": "MIT",

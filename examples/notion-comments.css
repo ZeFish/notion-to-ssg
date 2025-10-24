@@ -1,0 +1,280 @@
+/**
+ * Default styles for Notion Comments Plugin
+ *
+ * You can customize these styles to match your site's design.
+ * Import this file in your main CSS or copy styles to your stylesheet.
+ */
+
+/* Container */
+.notion-comments-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Comments List */
+.notion-comments-list {
+  margin-bottom: 3rem;
+}
+
+.notion-comments-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.notion-comments-empty {
+  padding: 2rem;
+  text-align: center;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  color: #6b7280;
+}
+
+/* Individual Comment */
+.notion-comment {
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease;
+}
+
+.notion-comment:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notion-comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.notion-comment-author {
+  font-weight: 600;
+  color: #111827;
+  font-size: 1rem;
+}
+
+.notion-comment-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.notion-comment-content {
+  color: #374151;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Comment Form */
+.notion-comment-form-wrapper {
+  background-color: #f9fafb;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.notion-comment-form-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #111827;
+}
+
+.notion-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.notion-comment-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notion-comment-form-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.notion-comment-form-group input[type="text"],
+.notion-comment-form-group input[type="email"],
+.notion-comment-form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #ffffff;
+}
+
+.notion-comment-form-group input[type="text"]:focus,
+.notion-comment-form-group input[type="email"]:focus,
+.notion-comment-form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.notion-comment-form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.notion-comment-form-group small {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.notion-comment-submit {
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  align-self: flex-start;
+}
+
+.notion-comment-submit:hover {
+  background-color: #2563eb;
+}
+
+.notion-comment-submit:active {
+  transform: scale(0.98);
+}
+
+.notion-comment-submit:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.notion-comment-moderation-notice {
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Error State */
+.notion-comments-error {
+  padding: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+  text-align: center;
+}
+
+/* Success Message (you can add via JavaScript) */
+.notion-comment-success {
+  padding: 1rem;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  color: #166534;
+  margin-bottom: 1rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .notion-comment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .notion-comment-form-wrapper {
+    padding: 1.25rem;
+  }
+
+  .notion-comment-submit {
+    width: 100%;
+  }
+}
+
+/* Dark Mode Support (optional) */
+@media (prefers-color-scheme: dark) {
+  .notion-comments-container {
+    color: #e5e7eb;
+  }
+
+  .notion-comments-title {
+    border-bottom-color: #374151;
+    color: #f9fafb;
+  }
+
+  .notion-comments-empty {
+    background-color: #1f2937;
+    color: #9ca3af;
+  }
+
+  .notion-comment {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .notion-comment-author {
+    color: #f9fafb;
+  }
+
+  .notion-comment-date {
+    color: #9ca3af;
+  }
+
+  .notion-comment-content {
+    color: #d1d5db;
+  }
+
+  .notion-comment-form-wrapper {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .notion-comment-form-title {
+    color: #f9fafb;
+  }
+
+  .notion-comment-form-group label {
+    color: #d1d5db;
+  }
+
+  .notion-comment-form-group input[type="text"],
+  .notion-comment-form-group input[type="email"],
+  .notion-comment-form-group textarea {
+    background-color: #111827;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .notion-comment-form-group input[type="text"]:focus,
+  .notion-comment-form-group input[type="email"]:focus,
+  .notion-comment-form-group textarea:focus {
+    border-color: #3b82f6;
+  }
+}

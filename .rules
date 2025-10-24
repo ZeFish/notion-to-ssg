@@ -1,0 +1,162 @@
+# Project Context: notion-to-ssg
+
+## Project Overview
+Node.js tool that exports Notion databases to Markdown files for static site generators (11ty). Includes an Eleventy plugin for using Notion as a comment engine.
+
+## Core Architecture
+
+### Main Components
+- **`src/index.js`** - Core export logic, Notion API client, markdown conversion
+- **`src/cli.js`** - CLI wrapper
+- **`src/eleventy-plugin-notion-comments.js`** - Eleventy plugin for comments
+
+### Key Dependencies
+- `@notionhq/client` - Notion API SDK
+- `notion-to-md` - Converts Notion blocks to markdown
+- `js-yaml` - Config parsing
+- `slugify` - URL slug generation
+
+### Configuration
+- YAML/JSON config files: `notion.config.yml` or `notion.config.json`
+- Environment: `.env` file with `NOTION_TOKEN`
+- Schema: `databases[]` array with `databaseId`, `srcDir`, `basePath`, `layout`, etc.
+
+## Technical Details
+
+### Processing Flow
+1. Load config from YAML/JSON
+2. Initialize Notion client with bearer token
+3. **First pass**: Fetch all pages, build ID→permalink map
+4. **Second pass**: Convert to markdown, download images, write files
+
+### Image Handling
+- Downloads via `https`/`http` modules
+- MD5 content hashing prevents duplicates
+- Relative paths in markdown
+
+### Property Extraction
+Supports all Notion property types via `extractPropValue()`: title, rich_text, select, multi_select, date, checkbox, people, files, relation, status, formula, rollup
+
+### Comments Plugin
+- Eleventy shortcode: `{% notionComments %}`
+- Serverless function: Cloudflare Pages or Netlify
+- Notion database stores comments with moderation
+
+## File Structure
+```
+notion-to-ssg/
+├── src/
+│   ├── index.js              # Core library
+│   ├── cli.js                # CLI wrapper
+│   └── eleventy-plugin-notion-comments.js
+├── examples/
+│   ├── cloudflare-function-comments.js
+│   ├── netlify-function-comments.js
+│   ├── notion-comments.css
+│   ├── notion-comments.js
+│   └── eleventy.config.example.js
+├── notion.config.example.yml
+├── NOTION_COMMENTS_PLUGIN.md
+└── package.json
+```
+
+## Common Tasks
+
+### Adding Features
+- Image handling: Modify `saveNotionImage()` and `downloadImage()` in src/index.js
+- New property types: Update `extractPropValue()` in src/index.js
+- Comments: Edit `src/eleventy-plugin-notion-comments.js`
+
+### Testing Export
+```bash
+npm run export
+```
+
+### Debugging
+- Check `.env` has valid `NOTION_TOKEN`
+- Verify database ID is 32 hex chars
+- Ensure Notion integration has database access
+- Check property names match exactly
+
+## Code Style
+
+### Patterns Used
+- Async/await for Notion API
+- Pagination with `start_cursor`/`has_more`
+- Content hashing for deduplication
+- Two-pass processing for internal links
+- In-memory caching (`imageCache` Map)
+
+### Important Functions
+- `exportNotionToSSG(options)` - Main export entry point
+- `fetchAllPages(notion, database_id)` - Paginated database query
+- `writePage(n2m, dbCfg, page, pageMap)` - Page→markdown→file
+- `extractPropValue(prop)` - Normalize all property types
+- `buildSlug(page, slugConf)` - Generate URL slugs
+
+## AI Assistant Guidelines
+
+### Response Style
+- Be concise and direct
+- Avoid explanatory preambles
+- Skip phrases like "I'll help you", "Let me", "Great question"
+- Don't repeat user requests back to them
+- No emoji unless explicitly requested
+- Provide code/commands directly
+
+### Token Efficiency
+1. **Read selectively** - Only read files relevant to the task
+2. **Use Grep/Glob first** - Search before reading entire files
+3. **Avoid redundancy** - Don't re-explain what you already know
+4. **Batch operations** - Use parallel tool calls when possible
+5. **Skip verbose output** - Summarize results, don't echo entire responses
+6. **Trust exploration** - Use Task tool for complex searches instead of manual searching
+
+### Code Changes
+- Use `mcp__acp__Edit` for targeted changes
+- Use `mcp__acp__Read` before editing
+- Prefer editing over rewriting entire files
+- Test changes with `npm run export` if modifying core logic
+
+### Common Requests
+- **"Add feature X"** → Read relevant file, edit, test
+- **"Fix bug Y"** → Grep for error, read context, fix
+- **"Explain Z"** → Search code, provide concise explanation
+- **"Update docs"** → Edit markdown directly, no preamble
+
+### What to Avoid
+- Don't read all files upfront
+- Don't explain the entire codebase unless asked
+- Don't create unnecessary documentation files
+- Don't use bash for file operations (use Read/Edit/Write tools)
+- Don't add emojis to responses or code
+
+### Testing Commands
+```bash
+node src/cli.js                    # Run export
+node src/cli.js --config custom.yml # Custom config
+npm run export                     # Same as above
+```
+
+### Environment Setup
+```bash
+cp .env.example .env               # Setup environment
+cp notion.config.example.yml notion.config.yml
+# Edit with your database IDs and token
+```
+
+## Current State
+- Version: 2.0.4
+- Branch: main (clean working tree)
+- Node: >=14.0.0
+- Recent: Comments plugin added
+
+## References
+- Notion API: https://developers.notion.com/
+- notion-to-md: https://github.com/souvikinator/notion-to-md
+- Eleventy: https://www.11ty.dev/
+- Cloudflare Pages Functions: https://developers.cloudflare.com/pages/functions/
+
+---
+
+**Key Principle**: Provide maximum value with minimum tokens. Be helpful, not chatty.
