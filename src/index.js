@@ -190,7 +190,27 @@ async function saveNotionImage(imageUrl, pageSlug, imageIndex, imagesDir) {
     fs.renameSync(downloadedPath, finalPath);
     console.log(`  📷 Downloaded image: ${filename}`);
 
-    const relativePath = `/${path.relative(path.join(process.cwd(), "src"), finalPath)}`;
+    // Determine what the path will be in _site/
+    // If file is in public/assets/img_notion/pic.jpg
+    // It will be in _site/assets/img_notion/pic.jpg
+    // So the URL is /assets/img_notion/pic.jpg
+
+    const cwd = process.cwd();
+
+    // Strip the "public/" prefix since that gets removed in _site
+    let webPath = finalPath;
+    const publicDir = path.join(cwd, "public");
+
+    if (finalPath.startsWith(publicDir)) {
+      webPath = finalPath.substring(publicDir.length);
+    } else {
+      // Fallback: calculate relative to project root
+      webPath = `/${path.relative(cwd, finalPath)}`;
+    }
+
+    // Ensure leading slash
+    const relativePath = webPath.startsWith("/") ? webPath : `/${webPath}`;
+
     imageCache.set(imageUrl, relativePath);
     return relativePath;
   } catch (error) {
