@@ -1,5 +1,7 @@
 # Changelog
 
+## [2.0.7](https://github.com/ZeFish/notion-to-ssg/compare/v2.0.6...v2.0.7) (2025-11-28)
+
 ## [2.0.6](https://github.com/ZeFish/notion-to-ssg/compare/v2.0.5...v2.0.6) (2025-11-28)
 
 ## [2.0.5](https://github.com/ZeFish/notion-to-ssg/compare/v2.0.4...v2.0.5) (2025-11-07)
