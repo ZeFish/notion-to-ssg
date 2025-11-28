@@ -75,14 +75,8 @@ CONFIGURATION:
       notionToken: process.env.NOTION_TOKEN,
     });
 
-    console.log("\n✨ Export completed successfully!");
-    console.log("\nSummary:");
-    for (const result of results) {
-      console.log(`  • ${result.databaseTitle}: ${result.pagesExported} pages exported`);
-      if (result.filesDeleted.length > 0) {
-        console.log(`    (${result.filesDeleted.length} stale files deleted)`);
-      }
-    }
+    console.log("\n✨ Notion export completed successfully! ✨");
+    console.log();
   } catch (error) {
     console.error("\n❌ Error:", error.message);
     if (process.env.DEBUG) {

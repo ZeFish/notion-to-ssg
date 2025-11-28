@@ -12,6 +12,13 @@ const crypto = require("crypto");
 // Image download cache to avoid re-downloading the same image
 const imageCache = new Map();
 
+// ---------- Console Log Wrapper ----------
+function logWithPrefix(message) {
+  const grey = '\x1b[90m';
+  const reset = '\x1b[0m';
+  console.log(`${grey}[Notion]${reset} ${message}`);
+}
+
 // ---------- Configuration Loading ----------
 function loadConfig(configPath = null) {
   const tryPaths = configPath
@@ -98,7 +105,7 @@ function toSlug(str, opts = { lower: true }) {
     lower: !!opts.lower,
     strict: true,
     locale: "fr",
-    remove: /[*+~.()'":@/?]/g,
+    remove: /[*+~.()'":@\/?]/g,
     trim: true,
   });
 }
@@ -180,7 +187,7 @@ async function saveNotionImage(imageUrl, pageSlug, imageIndex, imagesDir) {
     if (fs.existsSync(finalPath)) {
       // Delete the temp file since we already have this image
       fs.unlinkSync(downloadedPath);
-      console.log(`  📷 Image already exists (reusing): ${filename}`);
+      logWithPrefix(`📷 Image already exists (reusing): ${filename}`);
       const relativePath = `/${path.relative(path.join(process.cwd(), "src"), finalPath)}`;
       imageCache.set(imageUrl, relativePath);
       return relativePath;
@@ -188,7 +195,7 @@ async function saveNotionImage(imageUrl, pageSlug, imageIndex, imagesDir) {
 
     // Rename temp file to final filename
     fs.renameSync(downloadedPath, finalPath);
-    console.log(`  📷 Downloaded image: ${filename}`);
+    logWithPrefix(`📷 Downloaded image: ${filename}`);
 
     // Determine what the path will be in _site/
     // If file is in public/assets/img_notion/pic.jpg
@@ -214,7 +221,7 @@ async function saveNotionImage(imageUrl, pageSlug, imageIndex, imagesDir) {
     imageCache.set(imageUrl, relativePath);
     return relativePath;
   } catch (error) {
-    console.warn(`  ⚠️  Failed to download image: ${error.message}`);
+    logWithPrefix(`⚠️  Failed to download image: ${error.message}`);
     return imageUrl; // Fallback to original URL
   }
 }
@@ -355,38 +362,26 @@ function detectDbConfig(dbConf, dbMeta) {
   if (!dbConf.srcDir) {
     throw new Error(`Missing required field 'srcDir' in database config`);
   }
-  if (!dbConf.basePath) {
-    throw new Error(`Missing required field 'basePath' in database config`);
-  }
-  if (!dbConf.layout) {
-    throw new Error(`Missing required field 'layout' in database config`);
-  }
 
   const dir = path.join(process.cwd(), dbConf.srcDir);
   const imagesDir = path.join(
     process.cwd(),
     dbConf.srcDirImages || "src/images/notion",
   );
-  const basePath = dbConf.basePath;
-  const layout = dbConf.layout;
   const excludeProps = new Set(dbConf.excludeProperties || []);
   const slugConf = dbConf.slug || {
     from: "title",
     fallback: "id",
     lower: true,
   };
-  const permalinkTpl = dbConf.permalink || `${basePath}/{slug}/`;
   const fmExtras = dbConf.frontMatter || {};
   const cleanBeforeSync = dbConf.cleanBeforeSync !== false; // default true
 
   return {
     dir,
     imagesDir,
-    basePath,
-    layout,
     excludeProps,
     slugConf,
-    permalinkTpl,
     fmExtras,
     cleanBeforeSync,
   };
@@ -475,7 +470,7 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
         continue; // Move to the next match
       }
 
-      // Handle internal Notion links: resolve to local permalink
+      // Handle internal Notion links: resolve to local slug
       // Check both full URLs and direct page IDs (with or without dashes)
       let notionId = null;
 
@@ -498,14 +493,12 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
       }
 
       if (notionId && pageMap.has(notionId)) {
-        const localPermalink = pageMap.get(notionId);
+        const localSlug = pageMap.get(notionId);
         replacements.push({
           original: fullMatch,
-          replacement: `[${altText}](${localPermalink})`,
+          replacement: `[${altText}](${localSlug})`,
         });
-        console.log(
-          `  → Resolved internal link: ${altText} → ${localPermalink}`,
-        );
+        logWithPrefix(`→ Resolved internal link: ${altText} → ${localSlug}`);
       }
     }
 
@@ -519,7 +512,7 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
 
     return markdown;
   } catch (e) {
-    console.warn("Markdown conversion error for page", pageId, e.message);
+    logWithPrefix(`Markdown conversion error for page ${pageId}: ${e.message}`);
     return "";
   }
 }
@@ -527,13 +520,10 @@ async function pageBodyMarkdown(n2m, pageId, slug, imagesDir, pageMap) {
 // ---------- Page Writing ----------
 async function writePage(n2m, dbCfg, page, pageMap) {
   const slug = buildSlug(page, dbCfg.slugConf);
-  const permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
 
   // Collect front matter from all properties (except excluded)
   const front = {
-    layout: dbCfg.layout,
     title: getFirstTitleText(page) || slug,
-    permalink,
     notionPageId: page.id,
     ...dbCfg.fmExtras,
   };
@@ -544,15 +534,6 @@ async function writePage(n2m, dbCfg, page, pageMap) {
     if (val !== null && val !== undefined && val !== "") {
       front[name.trim()] = val;
     }
-  }
-
-  // If a permalink property was extracted from Notion, it will be in front.permalink.
-  // We don't need to do anything extra, as it has already overwritten the generated one.
-  // However, we should log it if it's different.
-  if (front.permalink !== permalink) {
-    console.log(
-      `  → Overriding permalink with value from 'permalink' property: ${front.permalink}`,
-    );
   }
 
   // Handle cover image if present
@@ -638,7 +619,7 @@ async function exportNotionToSSG(options = {}) {
   const pageMap = new Map();
   const allDbPages = new Map();
 
-  // First pass: collect all pages from all databases and build the ID-to-permalink map
+  // First pass: collect all pages from all databases and build the ID-to-slug map
   for (const dbConf of config.databases) {
     if (!dbConf.databaseId) {
       throw new Error("Each database config must have a 'databaseId' field");
@@ -652,16 +633,9 @@ async function exportNotionToSSG(options = {}) {
 
     for (const page of pages) {
       const slug = buildSlug(page, dbCfg.slugConf);
-      let permalink = renderPermalink(dbCfg.permalinkTpl, { slug });
-
-      const permalinkProp = page.properties?.permalink;
-      if (permalinkProp) {
-        const permalinkValue = extractPropValue(permalinkProp);
-        if (permalinkValue) {
-          permalink = permalinkValue;
-        }
-      }
-      pageMap.set(page.id.replace(/-/g, ""), permalink);
+      // Store slug for internal link resolution
+      // Astro will handle routing based on file location
+      pageMap.set(page.id.replace(/-/g, ""), slug);
     }
   }
 
@@ -675,9 +649,9 @@ async function exportNotionToSSG(options = {}) {
   }
 
   for (const dir of imageDirsToClean) {
-    console.log(`🧹 Cleaning old images in ${dir}...`);
+    logWithPrefix(`🧹 Cleaning old images in ${dir}...`);
     const deletedImages = cleanDirectory(dir);
-    console.log(`   Removed ${deletedImages.length} old image file(s)`);
+    logWithPrefix(`Removed ${deletedImages.length} old image file(s)`);
   }
 
   // Second pass: write all pages using the complete map
@@ -692,22 +666,19 @@ async function exportNotionToSSG(options = {}) {
 
     // Clean before sync if enabled
     if (dbCfg.cleanBeforeSync) {
-      console.log(`🧹 Cleaning old content in ${dbCfg.dir}...`);
+      logWithPrefix(`🧹 Cleaning old content in ${dbCfg.dir}...`);
       const deletedMd = cleanDirectory(dbCfg.dir, /\.md$/);
       deletedFiles.push(...deletedMd);
-      console.log(`   Removed ${deletedMd.length} old markdown file(s)`);
+      logWithPrefix(`Removed ${deletedMd.length} old markdown file(s)`);
     }
 
     const writtenFiles = new Set();
-
-    console.log(
-      `Exporting ${pages.length} pages from "${dbMeta?.title?.[0]?.plain_text || dbId}" → ${dbCfg.dir}`,
-    );
+    logWithPrefix(`${dbMeta?.title?.[0]?.plain_text || dbId} → ${pages.length} pages`);
 
     for (const page of pages) {
       const outPath = await writePage(n2m, dbCfg, page, pageMap);
       writtenFiles.add(outPath);
-      console.log("✓", path.relative(process.cwd(), outPath));
+      logWithPrefix(`✓ ${path.relative(process.cwd(), outPath)}`);
     }
 
     results.push({
