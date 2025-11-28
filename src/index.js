@@ -14,8 +14,8 @@ const imageCache = new Map();
 
 // ---------- Console Log Wrapper ----------
 function logWithPrefix(message) {
-  const grey = '\x1b[90m';
-  const reset = '\x1b[0m';
+  const grey = "\x1b[90m";
+  const reset = "\x1b[0m";
   console.log(`${grey}[Notion]${reset} ${message}`);
 }
 
@@ -54,13 +54,14 @@ function ensureDir(dir) {
   }
 }
 
+// CHANGE 1: Updated to support both .mdx and .md files
 function getAllMarkdownFilesInDir(dir) {
   if (!fs.existsSync(dir)) {
     return [];
   }
   return fs
     .readdirSync(dir)
-    .filter((file) => file.endsWith(".md"))
+    .filter((file) => file.endsWith(".mdx") || file.endsWith(".md"))
     .map((file) => path.join(dir, file));
 }
 
@@ -585,7 +586,8 @@ async function writePage(n2m, dbCfg, page, pageMap) {
   );
 
   ensureDir(dbCfg.dir);
-  const outPath = path.join(dbCfg.dir, `${slug}.md`);
+  // CHANGE 2: Updated output file extension from .md to .mdx
+  const outPath = path.join(dbCfg.dir, `${slug}.mdx`);
   fs.writeFileSync(outPath, fm + body, "utf8");
   return outPath;
 }
@@ -667,13 +669,16 @@ async function exportNotionToSSG(options = {}) {
     // Clean before sync if enabled
     if (dbCfg.cleanBeforeSync) {
       logWithPrefix(`🧹 Cleaning old content in ${dbCfg.dir}...`);
-      const deletedMd = cleanDirectory(dbCfg.dir, /\.md$/);
+      // CHANGE 3: Updated regex pattern to match both .md and .mdx files
+      const deletedMd = cleanDirectory(dbCfg.dir, /\.(md|mdx)$/);
       deletedFiles.push(...deletedMd);
       logWithPrefix(`Removed ${deletedMd.length} old markdown file(s)`);
     }
 
     const writtenFiles = new Set();
-    logWithPrefix(`${dbMeta?.title?.[0]?.plain_text || dbId} → ${pages.length} pages`);
+    logWithPrefix(
+      `${dbMeta?.title?.[0]?.plain_text || dbId} → ${pages.length} pages`,
+    );
 
     for (const page of pages) {
       const outPath = await writePage(n2m, dbCfg, page, pageMap);
